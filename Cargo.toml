@@ -1,0 +1,10 @@
+[package]
+name = "card3d_kit_excample"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { version = "0.16.0" }
+#bevy_card3d_kit = { git = "https://github.com/zzhgithub/bevy_card3d_kit.git", branch = "bevy-0.16" }
+bevy_card3d_kit = { path = "../card3d_kit" }
+bevy-inspector-egui = "0.31.0"
