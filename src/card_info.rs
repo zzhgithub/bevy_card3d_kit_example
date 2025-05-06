@@ -18,9 +18,9 @@ impl CardMaterialGetter for CardInfo {
     }
 }
 
-pub struct CardInfoPlugins;
+pub struct CardInfoPlugin;
 
-impl Plugin for CardInfoPlugins {
+impl Plugin for CardInfoPlugin {
     fn build(&self, app: &mut App) {
         bind_card_render::<CardInfo>(app);
     }
