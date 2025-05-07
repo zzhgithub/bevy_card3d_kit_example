@@ -1,15 +1,17 @@
 mod card_info;
 mod game;
-mod zone_info;
 mod hand_card;
+mod lua;
+mod zone_info;
 
-use crate::card_info::{CardInfo, CardInfoPlugins};
 use crate::game::GamePlugin;
-use crate::zone_info::ZoneInfoPlugin;
+use crate::hand_card::CardLineResource;
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_scriptum::Script;
+use bevy_scriptum::runtimes::lua::LuaScript;
 
 fn main() {
     App::new()
@@ -22,7 +24,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // 相机
     commands.spawn((
         SharkCamera,
@@ -40,13 +42,35 @@ fn setup(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 10.0),
     ));
 
-    // commands.spawn((
-    //     CardInfo {
-    //         id: "NAAI-A-001".to_string(),
-    //         name: "NAAI-A-001".to_string(),
-    //     },
-    //     Card {
-    //         origin: Transform::from_xyz(0.0, 0.0, HAND_CARD_LEVEL),
-    //     },
-    // ));
+    commands
+        .spawn((
+            Script::<LuaScript>::new(asset_server.load("lua/NAAI-A-001.lua")),
+            Card {
+                origin: Transform::from_xyz(0.0, 0.0, HAND_CARD_LEVEL),
+            },
+        ))
+        .observe(on_click);
+
+    commands
+        .spawn((
+            Script::<LuaScript>::new(asset_server.load("lua/EX001-A-002.lua")),
+            Card {
+                origin: Transform::from_xyz(0.0, 0.0, HAND_CARD_LEVEL),
+            },
+        ))
+        .observe(on_click);
+}
+
+//点击加入手牌
+fn on_click(
+    click: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    card_line_resource: Res<CardLineResource>,
+) {
+    commands
+        .entity(click.target())
+        .insert(HandCard {
+            belong_to_card_line: Some(card_line_resource.my_card_line),
+        })
+        .insert(Moveable);
 }
