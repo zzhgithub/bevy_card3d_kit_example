@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.16.0" }
-bevy_card3d_kit = { git = "https://github.com/zzhgithub/bevy_card3d_kit.git", branch = "bevy-0.16" }
+bevy_card3d_kit = { git = "https://github.com/zzhgithub/bevy_card3d_kit.git", branch = "bevy-0.16", features = ["image_preview"] }
 #bevy_card3d_kit = { path = "../card3d_kit", features = ["image_preview"] }
 bevy_scriptum = { git = "https://github.com/zzhgithub/bevy_scriptum.git", features = ["lua"] }
-#bevy_scriptum={path = "../bevy_scriptum",features = ["lua"]}
+#bevy_scriptum = { path = "../bevy_scriptum", features = ["lua"] }
 mlua = { version = "0.9.8", features = ["luajit", "vendored", "send"] }
 bevy-inspector-egui = "0.31.0"

@@ -17,9 +17,9 @@ impl CardMaterialGetter for CardInfo {
         format!("cards/{}.png", "back")
     }
 
-    // fn get_id(&self) -> String {
-    //     self.id.clone()
-    // }
+    fn get_id(&self) -> String {
+        self.id.clone()
+    }
 }
 
 pub struct CardInfoPlugin;

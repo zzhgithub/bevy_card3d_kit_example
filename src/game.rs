@@ -11,3 +11,4 @@ impl Plugin for GamePlugin {
         app.add_plugins((CardInfoPlugin, ZoneInfoPlugin, HandCardPlugin, LuaPlugin));
     }
 }
+
