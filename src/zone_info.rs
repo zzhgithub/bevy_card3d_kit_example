@@ -217,6 +217,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::LxField,
                 opponent: true,
             },
+            DeskZone { card_list: vec![] },
             CardState {
                 face_up: true,
                 vertical: false,
@@ -398,6 +399,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::LxField,
                 opponent: false,
             },
+            DeskZone { card_list: vec![] },
             CardState {
                 face_up: true,
                 vertical: false,

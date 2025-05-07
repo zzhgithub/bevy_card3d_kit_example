@@ -1,13 +1,18 @@
+use crate::card_info::CardInfo;
+use crate::card_info::card_enums::CardType;
 use crate::hand_card::CardLineResource;
 use crate::zone_info::AllZoneInfoResource;
 use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::system::IntoObserverSystem;
 use bevy::prelude::*;
+use bevy_card3d_kit::highlight::Highlight;
 use bevy_card3d_kit::prelude::card_state::CardState;
-use bevy_card3d_kit::prelude::{Card, HandCard, Moveable};
+use bevy_card3d_kit::prelude::{Card, CardLine, HandCard, Moveable};
 use bevy_card3d_kit::zone::desk_zone::{DeskCard, DeskZone, DeskZoneChangedEvent};
 use bevy_scriptum::Script;
 use bevy_scriptum::runtimes::lua::LuaScript;
+
+pub const CAN_SET_COLOR: Srgba = bevy::color::palettes::css::LIGHT_SKY_BLUE;
 
 pub struct DebugLabPlugin;
 
@@ -37,9 +42,9 @@ fn setup(mut commands: Commands) {
                         width: Val::Px(200.0),
                         height: Val::Auto,
                         flex_direction: FlexDirection::Column,
-                        padding: UiRect::all(Val::Px(10.0)),
-                        row_gap: Val::Px(5.0),
-                        column_gap: Val::Px(5.0),
+                        padding: UiRect::all(Val::Px(2.0)),
+                        row_gap: Val::Px(1.0),
+                        column_gap: Val::Px(1.0),
                         ..Default::default()
                     },
                     BackgroundColor(bevy::color::palettes::css::DARK_GRAY.into()),
@@ -47,6 +52,7 @@ fn setup(mut commands: Commands) {
                 .with_children(|parent| {
                     spawn_button(parent, "init desk".to_string(), on_click_init_desk);
                     spawn_button(parent, "draw".to_string(), on_click_draw);
+                    spawn_button(parent, "highlight".to_string(), on_click_highlight);
                 });
         });
 }
@@ -130,6 +136,64 @@ fn on_click_draw(
                 desk: all_zone_info_resource.my.desk,
                 card: card_entity,
             });
+        }
+    }
+}
+
+fn on_click_highlight(
+    _click: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    all_zone_info_resource: Res<AllZoneInfoResource>,
+    card_line_resource: Res<CardLineResource>,
+    query_card_line: Query<&CardLine>,
+    query_desks: Query<&DeskZone>,
+    query_cards: Query<&CardInfo>,
+) {
+    if let Ok(lx_zone) = query_desks.get(all_zone_info_resource.my.lx) {
+        let lx_used = lx_zone.card_list.len();
+        let lx_remain = 6 - lx_used;
+        if let Ok(card_line) = query_card_line.get(card_line_resource.my_card_line) {
+            let hand_num = card_line.card_list.len();
+            match_can_set(
+                &card_line.card_list,
+                &mut commands,
+                hand_num,
+                lx_remain,
+                query_cards,
+            );
+            match_can_set(
+                &lx_zone.card_list,
+                &mut commands,
+                hand_num,
+                lx_remain,
+                query_cards,
+            );
+        }
+    }
+}
+
+fn match_can_set(
+    list: &Vec<Entity>,
+    commands: &mut Commands,
+    hand_num: usize,
+    lx_remain: usize,
+    query_cards: Query<&CardInfo>,
+) {
+    for card_entity in list.iter() {
+        if let Ok(card_info) = query_cards.get(*card_entity) {
+            match card_info.card_type {
+                CardType::Arcane => {
+                    // do nothing
+                }
+                _ => {
+                    if card_info.cost <= hand_num - 1 && card_info.cost <= lx_remain {
+                        // 这样的卡才能设置！
+                        commands.entity(*card_entity).insert(Highlight {
+                            color: CAN_SET_COLOR.into(),
+                        });
+                    }
+                }
+            }
         }
     }
 }
