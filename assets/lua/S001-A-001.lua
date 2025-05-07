@@ -1,13 +1,13 @@
 local ns = "entity_" .. entity.index;
 
 _G[ns] = {
-    id = "EX001-A-002",
-    name = "门",
+    id = "S001-A-001",
+    name = "APPLe",
     card_type = "Actor",
-    attr = "INTELLECT",
-    race = "Arcanist",
-    cost = 0,
-    ack = 0,
+    attr = "STAR",
+    race = "Awakened",
+    cost = 1,
+    ack = 1200,
 };
 
 _G[ns].get_card_info = function(self)

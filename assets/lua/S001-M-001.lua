@@ -1,12 +1,12 @@
 local ns = "entity_" .. entity.index;
 
 _G[ns] = {
-    id = "EX001-A-002",
-    name = "门",
-    card_type = "Actor",
-    attr = "INTELLECT",
-    race = "Arcanist",
-    cost = 0,
+    id = "S001-M-001",
+    name = "超酷太阳镜",
+    card_type = "Meme",
+    attr = "STAR",
+    race = "NULL",
+    cost = 3,
     ack = 0,
 };
 

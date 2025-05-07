@@ -1,4 +1,5 @@
-mod card_info;
+pub mod card_info;
+mod debug_lab;
 mod game;
 mod hand_card;
 mod lua;
@@ -10,8 +11,6 @@ use bevy::prelude::*;
 use bevy_card3d_kit::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_scriptum::Script;
-use bevy_scriptum::runtimes::lua::LuaScript;
 
 fn main() {
     App::new()
@@ -24,7 +23,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands) {
     // 相机
     commands.spawn((
         SharkCamera,
@@ -41,27 +40,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Transform::from_xyz(0.0, 0.0, 10.0),
     ));
-
-    commands
-        .spawn((
-            Script::<LuaScript>::new(asset_server.load("lua/NAAI-A-001.lua")),
-            Card {
-                origin: Transform::from_xyz(0.0, 0.0, HAND_CARD_LEVEL),
-            },
-        ))
-        .observe(on_click);
-
-    commands
-        .spawn((
-            Script::<LuaScript>::new(asset_server.load("lua/EX001-A-002.lua")),
-            Card {
-                origin: Transform::from_xyz(0.0, 0.0, HAND_CARD_LEVEL),
-            },
-        ))
-        .observe(on_click);
 }
 
 //点击加入手牌
+#[deprecated]
 fn on_click(
     click: Trigger<Pointer<Click>>,
     mut commands: Commands,

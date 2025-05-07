@@ -1,4 +1,5 @@
 use crate::card_info::CardInfoPlugin;
+use crate::debug_lab::DebugLabPlugin;
 use crate::hand_card::HandCardPlugin;
 use crate::lua::LuaPlugin;
 use crate::zone_info::ZoneInfoPlugin;
@@ -8,7 +9,12 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((CardInfoPlugin, ZoneInfoPlugin, HandCardPlugin, LuaPlugin));
+        app.add_plugins((
+            CardInfoPlugin,
+            ZoneInfoPlugin,
+            HandCardPlugin,
+            LuaPlugin,
+            DebugLabPlugin,
+        ));
     }
 }
-

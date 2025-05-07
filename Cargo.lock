@@ -591,7 +591,6 @@ dependencies = [
 [[package]]
 name = "bevy_card3d_kit"
 version = "0.1.4"
-source = "git+https://github.com/zzhgithub/bevy_card3d_kit.git?branch=bevy-0.16#83c773ab990b431931c1c7ef14a171a1e75bc8ba"
 dependencies = [
  "bevy",
  "bevy_mod_outline",

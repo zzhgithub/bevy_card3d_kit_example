@@ -1,10 +1,12 @@
 use crate::card_info::CardInfo;
+use crate::card_info::card_enums::{Attr, CardType, Race};
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::Card;
 use bevy_scriptum::prelude::*;
 use bevy_scriptum::runtimes::lua::prelude::*;
 use mlua::prelude::LuaUserDataFields;
-use mlua::{FromLua, Lua, UserData, UserDataMethods, Value};
+use mlua::{UserData, Value};
+use std::str::FromStr;
 
 // 卡片信息的方法名称
 pub const CARD_INFO_FUNC: &str = "get_card_info";
@@ -31,7 +33,28 @@ fn setup(mut scripting_runtime: ResMut<LuaRuntime>) {
             })
             .unwrap();
         let test_constructor = engine
-            .create_function(|_, (id, name)| Ok(CardInfo { id, name }))
+            .create_function(
+                |_,
+                 (id, name, card_type, attr, race, cost, ack): (
+                    String,
+                    String,
+                    String,
+                    String,
+                    String,
+                    usize,
+                    u32,
+                )| {
+                    Ok(CardInfo {
+                        id,
+                        name,
+                        card_type: CardType::from_str(card_type.as_str()).unwrap(),
+                        attr: Attr::from_str(attr.as_str()).unwrap(),
+                        race: Race::from_str(race.as_str()).unwrap(),
+                        cost,
+                        ack,
+                    })
+                },
+            )
             .unwrap();
         engine.globals().set("CardInfo", test_constructor).unwrap();
     });
