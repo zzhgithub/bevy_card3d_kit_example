@@ -217,7 +217,10 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::LxField,
                 opponent: true,
             },
-            DeskZone { card_list: vec![] },
+            DeskZone {
+                card_list: vec![],
+                opt_capacity: Some(6),
+            },
             CardState {
                 face_up: true,
                 vertical: false,
@@ -236,6 +239,10 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
             ZoneInfo {
                 zone_type: ZoneType::JqField,
                 opponent: true,
+            },
+            DeskZone {
+                card_list: vec![],
+                opt_capacity: Some(6),
             },
             CardState {
                 face_up: false,
@@ -399,7 +406,10 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::LxField,
                 opponent: false,
             },
-            DeskZone { card_list: vec![] },
+            DeskZone {
+                card_list: vec![],
+                opt_capacity: Some(6),
+            },
             CardState {
                 face_up: true,
                 vertical: false,
@@ -417,6 +427,10 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
             ZoneInfo {
                 zone_type: ZoneType::JqField,
                 opponent: false,
+            },
+            DeskZone {
+                card_list: vec![],
+                opt_capacity: Some(6),
             },
             CardState {
                 face_up: false,

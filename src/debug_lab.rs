@@ -6,8 +6,8 @@ use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::system::IntoObserverSystem;
 use bevy::prelude::*;
 use bevy_card3d_kit::highlight::Highlight;
-use bevy_card3d_kit::prelude::card_state::CardState;
-use bevy_card3d_kit::prelude::{Card, CardLine, HandCard, Moveable};
+use bevy_card3d_kit::prelude::card_state::{CardState, ChangeCardState};
+use bevy_card3d_kit::prelude::{Card, CardLine, HandCard, HandCardChanged, Moveable};
 use bevy_card3d_kit::zone::desk_zone::{DeskCard, DeskZone, DeskZoneChangedEvent};
 use bevy_scriptum::Script;
 use bevy_scriptum::runtimes::lua::LuaScript;
@@ -53,6 +53,8 @@ fn setup(mut commands: Commands) {
                     spawn_button(parent, "init desk".to_string(), on_click_init_desk);
                     spawn_button(parent, "draw".to_string(), on_click_draw);
                     spawn_button(parent, "highlight".to_string(), on_click_highlight);
+                    spawn_button(parent, "to_lx".to_string(), put_hand_in_lx);
+                    spawn_button(parent, "lx_change".to_string(), change_all_lx);
                 });
         });
 }
@@ -150,24 +152,32 @@ fn on_click_highlight(
     query_cards: Query<&CardInfo>,
 ) {
     if let Ok(lx_zone) = query_desks.get(all_zone_info_resource.my.lx) {
-        let lx_used = lx_zone.card_list.len();
-        let lx_remain = 6 - lx_used;
-        if let Ok(card_line) = query_card_line.get(card_line_resource.my_card_line) {
-            let hand_num = card_line.card_list.len();
-            match_can_set(
-                &card_line.card_list,
-                &mut commands,
-                hand_num,
-                lx_remain,
-                query_cards,
-            );
-            match_can_set(
-                &lx_zone.card_list,
-                &mut commands,
-                hand_num,
-                lx_remain,
-                query_cards,
-            );
+        if let Ok(jq_zone) = query_desks.get(all_zone_info_resource.my.jq) {
+            let jq = jq_zone.card_list.len();
+            let lx_used = lx_zone.card_list.len();
+            let lx_remain = 6 - lx_used;
+            if let Ok(card_line) = query_card_line.get(card_line_resource.my_card_line) {
+                let hand_num = card_line.card_list.len();
+                if hand_num > 0 {
+                    //FIX手牌为0
+                    match_can_set(
+                        &card_line.card_list,
+                        &mut commands,
+                        hand_num - 1,
+                        lx_remain,
+                        jq,
+                        query_cards,
+                    );
+                }
+                match_can_set(
+                    &lx_zone.card_list,
+                    &mut commands,
+                    hand_num,
+                    lx_remain,
+                    jq,
+                    query_cards,
+                );
+            }
         }
     }
 }
@@ -177,22 +187,80 @@ fn match_can_set(
     commands: &mut Commands,
     hand_num: usize,
     lx_remain: usize,
+    jq: usize,
     query_cards: Query<&CardInfo>,
 ) {
     for card_entity in list.iter() {
         if let Ok(card_info) = query_cards.get(*card_entity) {
+            // 每次刷新状态
+            commands.entity(*card_entity).remove::<Highlight>();
             match card_info.card_type {
                 CardType::Arcane => {
                     // do nothing
                 }
+                // 费用 <= min(hand_num,lx_remain)+jq 小于手牌和剩余槽位小的那个 加上 激情
                 _ => {
-                    if card_info.cost <= hand_num - 1 && card_info.cost <= lx_remain {
+                    if card_info.cost <= (hand_num.min(lx_remain) + jq) {
                         // 这样的卡才能设置！
                         commands.entity(*card_entity).insert(Highlight {
                             color: CAN_SET_COLOR.into(),
                         });
                     }
                 }
+            }
+        }
+    }
+}
+
+fn put_hand_in_lx(
+    _click: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    all_zone_info_resource: Res<AllZoneInfoResource>,
+    card_line_resource: Res<CardLineResource>,
+    mut query_card_line: Query<&mut CardLine>,
+    mut hand_card_event: EventWriter<HandCardChanged>,
+    query_desks: Query<&DeskZone>,
+) {
+    if let Ok(mut card_line) = query_card_line.get_mut(card_line_resource.my_card_line) {
+        if let Ok(lx_zone) = query_desks.get(all_zone_info_resource.my.lx) {
+            if card_line.card_list.len() > 0 && lx_zone.card_list.len() < 6 {
+                if let Some(card_entity) = card_line.card_list.pop() {
+                    hand_card_event.write(HandCardChanged::Remove {
+                        card_entity,
+                        card_line_entity: card_line_resource.my_card_line,
+                    });
+                    commands
+                        .entity(card_entity)
+                        .remove::<HandCard>()
+                        // FIXME: 此处移动层面不一样
+                        // .remove::<Moveable>()
+                        .insert(DeskCard {
+                            belongs_to_desk: Some(all_zone_info_resource.my.lx),
+                        });
+                }
+            }
+        }
+    }
+}
+
+fn change_all_lx(
+    _click: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    all_zone_info_resource: Res<AllZoneInfoResource>,
+    _card_line_resource: Res<CardLineResource>,
+    mut _query_card_line: Query<&mut CardLine>,
+    mut _hand_card_event: EventWriter<HandCardChanged>,
+    query_desks: Query<&DeskZone>,
+) {
+    //TODO 所有竖直的回到手卡
+    // 所有理性区的卡竖直
+    if let Ok(lx_zone) = query_desks.get(all_zone_info_resource.my.lx) {
+        if lx_zone.card_list.len() > 0 {
+            for entity in lx_zone.card_list.iter() {
+                commands.entity(*entity).insert(ChangeCardState(CardState {
+                    face_up: true,
+                    vertical: true,
+                }));
             }
         }
     }
