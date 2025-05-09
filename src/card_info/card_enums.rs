@@ -1,7 +1,7 @@
 use bevy::prelude::Reflect;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Clone, Reflect, PartialEq)]
 pub enum CardType {
     // 人物
     Actor,

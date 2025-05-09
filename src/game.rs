@@ -1,4 +1,5 @@
 use crate::card_info::CardInfoPlugin;
+use crate::card_zone::can_set::CardSetZonePlugin;
 use crate::debug_lab::DebugLabPlugin;
 use crate::hand_card::HandCardPlugin;
 use crate::lua::LuaPlugin;
@@ -14,6 +15,7 @@ impl Plugin for GamePlugin {
             ZoneInfoPlugin,
             HandCardPlugin,
             LuaPlugin,
+            CardSetZonePlugin,
             DebugLabPlugin,
         ));
     }

@@ -1,5 +1,6 @@
 use crate::card_info::CardInfo;
 use crate::card_info::card_enums::CardType;
+use crate::card_zone::can_set::CanSet;
 use crate::hand_card::CardLineResource;
 use crate::zone_info::AllZoneInfoResource;
 use bevy::ecs::relationship::RelatedSpawnerCommands;
@@ -13,6 +14,7 @@ use bevy_scriptum::Script;
 use bevy_scriptum::runtimes::lua::LuaScript;
 
 pub const CAN_SET_COLOR: Srgba = bevy::color::palettes::css::LIGHT_SKY_BLUE;
+pub const CNA_SET_ON_COLOR: Srgba = bevy::color::palettes::css::DARK_RED;
 
 pub struct DebugLabPlugin;
 
@@ -202,9 +204,12 @@ fn match_can_set(
                 _ => {
                     if card_info.cost <= (hand_num.min(lx_remain) + jq) {
                         // 这样的卡才能设置！
-                        commands.entity(*card_entity).insert(Highlight {
-                            color: CAN_SET_COLOR.into(),
-                        });
+                        commands
+                            .entity(*card_entity)
+                            .insert(CanSet)
+                            .insert(Highlight {
+                                color: CAN_SET_COLOR.into(),
+                            });
                     }
                 }
             }

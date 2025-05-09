@@ -1,4 +1,5 @@
 pub mod card_info;
+mod card_zone;
 mod debug_lab;
 mod game;
 mod hand_card;

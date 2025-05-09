@@ -1,3 +1,5 @@
+use crate::card_info::card_enums::CardType;
+use crate::card_zone::can_set::CanSetOn;
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::card_state::CardState;
 use bevy_card3d_kit::zone::desk_zone::DeskZone;
@@ -299,6 +301,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::PreparationField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Actor]),
         ))
         .id();
     // 三个战场
@@ -313,6 +316,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Actor]),
         ))
         .id();
     let battle2 = commands
@@ -326,6 +330,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Actor]),
         ))
         .id();
     let battle3 = commands
@@ -339,6 +344,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Actor]),
         ))
         .id();
     //安全屋 x4
@@ -353,6 +359,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Meme]),
         ))
         .id();
     let safe2 = commands
@@ -366,6 +373,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Meme]),
         ))
         .id();
     let safe3 = commands
@@ -379,6 +387,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Meme]),
         ))
         .id();
     let safe4 = commands
@@ -392,6 +401,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            CanSetOn(vec![CardType::Meme]),
         ))
         .id();
     // 理性区
