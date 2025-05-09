@@ -247,20 +247,36 @@ fn change_all_lx(
     _click: Trigger<Pointer<Click>>,
     mut commands: Commands,
     all_zone_info_resource: Res<AllZoneInfoResource>,
-    _card_line_resource: Res<CardLineResource>,
+    card_line_resource: Res<CardLineResource>,
     mut _query_card_line: Query<&mut CardLine>,
-    mut _hand_card_event: EventWriter<HandCardChanged>,
     query_desks: Query<&DeskZone>,
+    query_cards: Query<&CardState, With<Card>>,
+    mut desk_card_event: EventWriter<DeskZoneChangedEvent>,
 ) {
     //TODO 所有竖直的回到手卡
+
     // 所有理性区的卡竖直
     if let Ok(lx_zone) = query_desks.get(all_zone_info_resource.my.lx) {
         if lx_zone.card_list.len() > 0 {
             for entity in lx_zone.card_list.iter() {
-                commands.entity(*entity).insert(ChangeCardState(CardState {
-                    face_up: true,
-                    vertical: true,
-                }));
+                if let Ok(card_state) = query_cards.get(*entity) {
+                    if card_state.vertical {
+                        // 去除卡组
+                        desk_card_event.write(DeskZoneChangedEvent::Removed {
+                            desk: all_zone_info_resource.my.lx,
+                            card: *entity,
+                        });
+                        // 加入手卡
+                        commands.entity(*entity).insert(HandCard {
+                            belong_to_card_line: Some(card_line_resource.my_card_line),
+                        });
+                    } else {
+                        commands.entity(*entity).insert(ChangeCardState(CardState {
+                            face_up: true,
+                            vertical: true,
+                        }));
+                    }
+                }
             }
         }
     }
