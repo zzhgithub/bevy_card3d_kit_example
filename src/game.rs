@@ -3,6 +3,7 @@ use crate::card_zone::can_set::CardSetZonePlugin;
 use crate::debug_lab::DebugLabPlugin;
 use crate::hand_card::HandCardPlugin;
 use crate::lua::LuaPlugin;
+use crate::ui::ShowDialogPlugin;
 use crate::zone_info::ZoneInfoPlugin;
 use bevy::prelude::*;
 
@@ -17,6 +18,7 @@ impl Plugin for GamePlugin {
             LuaPlugin,
             CardSetZonePlugin,
             DebugLabPlugin,
+            ShowDialogPlugin,
         ));
     }
 }

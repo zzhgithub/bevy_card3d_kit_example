@@ -57,6 +57,7 @@ fn setup(mut commands: Commands) {
                     spawn_button(parent, "highlight".to_string(), on_click_highlight);
                     spawn_button(parent, "to_lx".to_string(), put_hand_in_lx);
                     spawn_button(parent, "lx_change".to_string(), change_all_lx);
+                    spawn_button(parent, "to_jq".to_string(), put_desk_in_jq)
                 });
         });
 }
@@ -242,6 +243,39 @@ fn put_hand_in_lx(
                         .insert(DeskCard {
                             belongs_to_desk: Some(all_zone_info_resource.my.lx),
                         });
+                }
+            }
+        }
+    }
+}
+
+fn put_desk_in_jq(
+    _click: Trigger<Pointer<Click>>,
+    mut commands: Commands,
+    all_zone_info_resource: Res<AllZoneInfoResource>,
+    mut desk_card_event: EventWriter<DeskZoneChangedEvent>,
+    mut query_desks: Query<&mut DeskZone>,
+) {
+    if let Ok(jq_zone) = query_desks.get(all_zone_info_resource.my.jq) {
+        if jq_zone.card_list.len() < 6 {
+            // 从卡组里进行添加
+            if let Ok(mut desk_zone) = query_desks.get_mut(all_zone_info_resource.my.desk) {
+                if desk_zone.card_list.len() > 0 {
+                    if let Some(card_entity) = desk_zone.card_list.pop() {
+                        commands
+                            .entity(card_entity)
+                            .remove::<Highlight>()
+                            .remove::<DeskCard>()
+                            .remove::<CardState>()
+                            .insert(DeskCard {
+                                belongs_to_desk: Some(all_zone_info_resource.my.jq),
+                            });
+                        // 去除卡组
+                        desk_card_event.write(DeskZoneChangedEvent::Removed {
+                            desk: all_zone_info_resource.my.desk,
+                            card: card_entity,
+                        });
+                    }
                 }
             }
         }

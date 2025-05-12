@@ -1399,8 +1399,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_time_runner"
-version = "0.3.0"
-source = "git+https://github.com/Multirious/bevy_time_runner?branch=bevy-v0.16.0#1b943e57291711cd7d9c77ca19f57889c0daf0b5"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2585511ce9da102753cfb33eef39a1749a02dc5670e05d01004001e22cba326f"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -1429,8 +1430,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_tween"
-version = "0.7.0"
-source = "git+https://github.com/Multirious/bevy_tween.git?branch=bevy-v0.16.0#1f76bcf696a993d57302fb36014c20c999a3088c"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aae743c5677965fa86495604847a55fad480c84f12706b446f57a878bce9d4d2"
 dependencies = [
  "bevy",
  "bevy_math",

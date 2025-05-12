@@ -4,6 +4,7 @@ mod debug_lab;
 mod game;
 mod hand_card;
 mod lua;
+mod ui;
 mod zone_info;
 
 use crate::game::GamePlugin;
