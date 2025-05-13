@@ -3,6 +3,8 @@ use crate::zone_info::ZoneInfo;
 use bevy::color;
 use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::system::IntoObserverSystem;
+use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
+use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::{Card, CardLine};
 use bevy_card3d_kit::zone::Zone;
@@ -38,7 +40,7 @@ impl Plugin for ShowDialogPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ShowDialogBox<EnterEvent>>();
         app.add_event::<EnterEvent>();
-        app.add_systems(Update, show_dialog);
+        app.add_systems(Update, (show_dialog, update_scroll_position));
     }
 }
 
@@ -52,6 +54,7 @@ fn show_dialog(
     mut query_card_line: Query<&mut CardLine>,
     // 查询卡片信息
     mut query_card: Query<&mut CardInfo>,
+    asset_server: Res<AssetServer>,
 ) {
     for dialog_box in show_dialog.read() {
         let cb = (dialog_box.callback).clone();
@@ -59,8 +62,13 @@ fn show_dialog(
         ui_dialog(
             &mut commands,
             dialog_box.text.clone(),
-            |_| {
+            |content_parent| {
                 // TODO 显示全部
+                scroll_list(content_parent, |p| {
+                    spawn_card_list(p, "Zone1".to_string(), &asset_server);
+                    spawn_card_list(p, "Zone2".to_string(), &asset_server);
+                    spawn_card_list(p, "Zone3".to_string(), &asset_server);
+                });
             },
             move |_click: Trigger<Pointer<Click>>,
                   mut enter_events: EventWriter<EnterEvent>,
@@ -223,4 +231,168 @@ fn spawn_button<E: Event, B: Bundle, M>(
             ));
         })
         .observe(observer);
+}
+
+fn spawn_card_list(
+    mut parent: &mut RelatedSpawnerCommands<ChildOf>,
+    title: String,
+    asset_server: &Res<AssetServer>,
+) {
+    parent
+        .spawn((
+            Node {
+                width: Val::Auto,
+                height: Val::Auto,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Stretch,
+                padding: UiRect::all(Val::Px(10.0)),
+                ..default()
+            },
+            Pickable::IGNORE,
+            BackgroundColor(color::palettes::css::LIGHT_SKY_BLUE.with_alpha(0.5).into()),
+        ))
+        .with_children(|dialog| {
+            // 标题
+            dialog
+                .spawn((
+                    Name::new("Title"),
+                    Node {
+                        height: Val::Px(40.0),
+                        width: Val::Auto,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    BackgroundColor(color::palettes::css::LIGHT_SKY_BLUE.with_alpha(0.5).into()),
+                    Outline {
+                        width: Val::Px(1.0),
+                        offset: Default::default(),
+                        color: color::palettes::css::WHITE.into(),
+                    },
+                    Pickable {
+                        should_block_lower: false,
+                        ..default()
+                    },
+                ))
+                .with_children(|dialog_title| {
+                    dialog_title.spawn((
+                        Text::new(title),
+                        TextFont {
+                            font: default(),
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::BLACK),
+                    ));
+                });
+            dialog
+                .spawn((
+                    Name::new("picture"),
+                    Node {
+                        height: Val::Px(300.0),
+                        width: Val::Auto,
+                        justify_content: JustifyContent::FlexStart,
+                        align_items: AlignItems::Center,
+                        flex_direction: FlexDirection::Row,
+                        padding: UiRect::all(Val::Px(10.0)),
+                        row_gap: Val::Px(10.0),
+                        column_gap: Val::Px(15.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(color::palettes::css::LIGHT_SKY_BLUE.with_alpha(0.5).into()),
+                    Outline {
+                        width: Val::Px(1.0),
+                        offset: Default::default(),
+                        color: color::palettes::css::WHITE.into(),
+                    },
+                    Pickable {
+                        should_block_lower: false,
+                        ..default()
+                    },
+                ))
+                .with_children(|pic_contents| {
+                    // FIXME: 测试代码 后面改成其他的 这里除了图片还 要知道属于的zone或者cardline!
+                    for x in vec!["NAAI-A-001", "S001-A-001"] {
+                        let image = asset_server.load(format!("cards/{}.png", x));
+                        pic_contents
+                            .spawn((
+                                Node {
+                                    height: Val::Percent(100.0),
+                                    width: Val::Auto,
+                                    padding: UiRect::all(Val::Px(5.0)),
+                                    ..default()
+                                },
+                                ImageNode {
+                                    image: image.clone(),
+                                    ..default()
+                                },
+                                Pickable {
+                                    should_block_lower: false,
+                                    ..default()
+                                },
+                            ))
+                            .observe(
+                                // TODO 这里要改成其他的！
+                                |click: Trigger<Pointer<Click>>,
+                                 mut commands: Commands,
+                                 query: Query<&Outline>| {
+                                    if let Ok(en) = query.get(click.target()) {
+                                        commands.entity(click.target()).remove::<Outline>();
+                                    } else {
+                                        commands.entity(click.target()).insert(Outline {
+                                            width: Val::Px(5.0),
+                                            offset: Val::Px(0.2),
+                                            color: color::palettes::css::RED.into(),
+                                        });
+                                    }
+                                },
+                            );
+                    }
+                });
+        });
+}
+
+pub fn scroll_list<F>(parent: &mut RelatedSpawnerCommands<ChildOf>, mut callback: F)
+where
+    F: FnMut(&mut RelatedSpawnerCommands<ChildOf>),
+{
+    parent
+        .spawn((
+            Node {
+                display: Display::Flex,
+                width: Val::Auto,
+                height: Val::Auto,
+                flex_direction: FlexDirection::Row,
+                margin: UiRect::all(Val::Px(5.)),
+                overflow: Overflow::scroll_x(),
+                ..default()
+            },
+            BackgroundColor(Color::NONE),
+        ))
+        .with_children(|parent| {
+            callback(parent);
+        });
+}
+
+pub fn update_scroll_position(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    hover_map: Res<HoverMap>,
+    mut scrolled_node_query: Query<&mut ScrollPosition>,
+) {
+    for mouse_wheel_event in mouse_wheel_events.read() {
+        let (mut dx, mut dy) = match mouse_wheel_event.unit {
+            MouseScrollUnit::Line => (mouse_wheel_event.x * 5.0, mouse_wheel_event.y * 5.0),
+            MouseScrollUnit::Pixel => (mouse_wheel_event.x, mouse_wheel_event.y),
+        };
+        // 换x和y轴
+        std::mem::swap(&mut dx, &mut dy);
+        for (_pointer, pointer_map) in hover_map.iter() {
+            for (entity, _hit) in pointer_map.iter() {
+                if let Ok(mut scroll_position) = scrolled_node_query.get_mut(*entity) {
+                    scroll_position.offset_x -= dx;
+                    scroll_position.offset_y -= dy;
+                }
+            }
+        }
+    }
 }
