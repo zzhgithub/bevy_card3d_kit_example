@@ -1,6 +1,7 @@
 use crate::card_info::CardInfo;
 use crate::zone_info::ZoneInfo;
 use bevy::color;
+use bevy::color::palettes::css::{GRAY, GREEN};
 use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy::ecs::system::IntoObserverSystem;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
@@ -10,6 +11,41 @@ use bevy_card3d_kit::prelude::{Card, CardLine};
 use bevy_card3d_kit::zone::Zone;
 use bevy_card3d_kit::zone::desk_zone::DeskZone;
 use std::sync::Arc;
+
+// 被UI中选中
+#[derive(Component, Clone, Debug)]
+pub struct UIChose;
+
+// 确认按钮组件
+#[derive(Component, Clone, Debug)]
+pub struct ConfirmButton {
+    pub min: usize,
+    pub max: usize,
+}
+
+#[derive(Component, Clone, Debug)]
+pub struct ButtonEnable;
+
+fn confirm_button_color_system(
+    mut commands: Commands,
+    button_query: Query<(Entity, &ConfirmButton)>,
+    ui_chose_query: Query<&UIChose>,
+) {
+    if let Ok((button, confirm_button)) = button_query.single() {
+        let num = ui_chose_query.iter().len();
+        if num >= confirm_button.min && num <= confirm_button.max {
+            commands
+                .entity(button)
+                .insert(ButtonEnable)
+                .insert(BackgroundColor(GREEN.into()));
+        } else {
+            commands
+                .entity(button)
+                .remove::<ButtonEnable>()
+                .insert(BackgroundColor(GRAY.into()));
+        }
+    }
+}
 
 #[derive(Event, Clone)]
 pub struct ShowDialogBox<T> {
@@ -40,7 +76,14 @@ impl Plugin for ShowDialogPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ShowDialogBox<EnterEvent>>();
         app.add_event::<EnterEvent>();
-        app.add_systems(Update, (show_dialog, update_scroll_position));
+        app.add_systems(
+            Update,
+            (
+                show_dialog,
+                update_scroll_position,
+                confirm_button_color_system,
+            ),
+        );
     }
 }
 
@@ -58,10 +101,18 @@ fn show_dialog(
 ) {
     for dialog_box in show_dialog.read() {
         let cb = (dialog_box.callback).clone();
-
+        let text = format!(
+            "{} With Cost: {} ",
+            dialog_box.text.clone(),
+            if dialog_box.min == dialog_box.max {
+                dialog_box.min.to_string()
+            } else {
+                format!("min {} max {}", dialog_box.min, dialog_box.max)
+            }
+        );
         ui_dialog(
             &mut commands,
-            dialog_box.text.clone(),
+            text,
             |content_parent| {
                 // TODO 显示全部
                 scroll_list(content_parent, |p| {
@@ -70,16 +121,19 @@ fn show_dialog(
                     spawn_card_list(p, "Zone3".to_string(), &asset_server);
                 });
             },
-            move |_click: Trigger<Pointer<Click>>,
+            move |click: Trigger<Pointer<Click>>,
                   mut enter_events: EventWriter<EnterEvent>,
                   mut commands: Commands,
+                  query_enable: Query<&ButtonEnable>,
                   dialog_show: Query<Entity, With<DialogShow>>| {
                 // FIXME 添加控制 确认显示的逻辑
-                let event = (cb)(vec![], vec![]);
-                info!("Sending {:?}", event);
-                // enter_events.write(event);
-                if let Ok(single) = dialog_show.single() {
-                    commands.entity(single).despawn();
+                if let Ok(_) = query_enable.get(click.target()) {
+                    let event = (cb)(vec![], vec![]);
+                    info!("Sending {:?}", event);
+                    // enter_events.write(event);
+                    if let Ok(single) = dialog_show.single() {
+                        commands.entity(single).despawn();
+                    }
                 }
             },
             move |_click: Trigger<Pointer<Click>>,
@@ -89,6 +143,8 @@ fn show_dialog(
                     commands.entity(single).despawn();
                 }
             },
+            dialog_box.min,
+            dialog_box.max,
         );
     }
 }
@@ -103,6 +159,8 @@ fn ui_dialog<E1: Event, B1: Bundle, M1, E2: Event, B2: Bundle, M2>(
     observer_confirm: impl IntoObserverSystem<E1, B1, M1>,
     // 取消
     observer_cancel: impl IntoObserverSystem<E2, B2, M2>,
+    min: usize,
+    max: usize,
 ) {
     commands
         .spawn((
@@ -178,12 +236,16 @@ fn ui_dialog<E1: Event, B1: Bundle, M1, E2: Event, B2: Bundle, M2>(
                             BackgroundColor(color::palettes::css::DARK_BLUE.with_alpha(0.5).into()),
                         ))
                         .with_children(|dialog_button| {
-                            spawn_button(
+                            let entity = spawn_button(
                                 dialog_button,
                                 "Confirm".to_string(),
                                 color::palettes::css::GREEN.into(),
                                 observer_confirm,
                             );
+                            dialog_button
+                                .commands()
+                                .entity(entity)
+                                .insert(ConfirmButton { min, max });
                             spawn_button(
                                 dialog_button,
                                 "Cancel".to_string(),
@@ -203,7 +265,7 @@ fn spawn_button<E: Event, B: Bundle, M>(
     text: String,
     color: Color,
     observer: impl IntoObserverSystem<E, B, M>,
-) {
+) -> Entity {
     parent
         .spawn((
             Button,
@@ -230,7 +292,8 @@ fn spawn_button<E: Event, B: Bundle, M>(
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
             ));
         })
-        .observe(observer);
+        .observe(observer)
+        .id()
 }
 
 fn spawn_card_list(
@@ -337,13 +400,19 @@ fn spawn_card_list(
                                  mut commands: Commands,
                                  query: Query<&Outline>| {
                                     if let Ok(en) = query.get(click.target()) {
-                                        commands.entity(click.target()).remove::<Outline>();
+                                        commands
+                                            .entity(click.target())
+                                            .remove::<Outline>()
+                                            .remove::<UIChose>();
                                     } else {
-                                        commands.entity(click.target()).insert(Outline {
-                                            width: Val::Px(5.0),
-                                            offset: Val::Px(0.2),
-                                            color: color::palettes::css::RED.into(),
-                                        });
+                                        commands
+                                            .entity(click.target())
+                                            .insert(Outline {
+                                                width: Val::Px(5.0),
+                                                offset: Val::Px(0.2),
+                                                color: color::palettes::css::RED.into(),
+                                            })
+                                            .insert(UIChose);
                                     }
                                 },
                             );

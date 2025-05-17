@@ -78,8 +78,8 @@ fn card_on_zone(
         text: "Set Card".to_string(),
         zone_list: vec![],
         hand_list: vec![],
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 2,
         callback: Arc::new(|_, _| EnterEvent::Test),
     });
 }

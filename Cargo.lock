@@ -591,6 +591,8 @@ dependencies = [
 [[package]]
 name = "bevy_card3d_kit"
 version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4d63a152d96d4e9950e5d254b60b5568b5bc886a073235b6bcc880e27bb2f7b"
 dependencies = [
  "bevy",
  "bevy_mod_outline",
@@ -1040,7 +1042,8 @@ dependencies = [
 [[package]]
 name = "bevy_mod_outline"
 version = "0.10.0"
-source = "git+https://github.com/komadori/bevy_mod_outline.git?branch=bevy-0.16#fde31afe4e06de0e9f22f3aa421dcb0c1ad08f90"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4fb205ce648281ec42dc1f82bb3143ff7c8b244974db5216bcd8c3b8a650cc6"
 dependencies = [
  "bevy",
  "bitfield",
