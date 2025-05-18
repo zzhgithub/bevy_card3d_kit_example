@@ -7,7 +7,9 @@ use bevy::ecs::system::IntoObserverSystem;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::picking::hover::HoverMap;
 use bevy::prelude::*;
+use bevy_card3d_kit::prelude::card_state::CardState;
 use bevy_card3d_kit::prelude::{Card, CardLine};
+use bevy_card3d_kit::preview_plugins::ImagePreview;
 use bevy_card3d_kit::zone::Zone;
 use bevy_card3d_kit::zone::desk_zone::DeskZone;
 use std::sync::Arc;
@@ -47,8 +49,26 @@ fn confirm_button_color_system(
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum UICardType {
+    Hand,
+    Zone,
+}
+
+#[derive(Component, Clone, Debug)]
+pub struct UICardInfo {
+    pub card_type: UICardType,
+    pub card_info: CardInfo,
+    pub card_state: CardState,
+    pub zone_card_pair: ZoneCardPair,
+}
+
+// 位置卡片对
+pub type ZoneCardPair = (Entity, Entity);
+
 #[derive(Event, Clone)]
 pub struct ShowDialogBox<T> {
+    pub card: Entity,
     // 标题
     pub text: String,
     // 不同区域 Vec<DeskZone,Name>
@@ -59,7 +79,7 @@ pub struct ShowDialogBox<T> {
     pub min: usize,
     pub max: usize,
     // 生成事件的回调
-    pub callback: Arc<dyn Fn(Vec<Entity>, Vec<Entity>) -> T + Send + Sync + 'static>,
+    pub callback: Arc<dyn Fn(Vec<ZoneCardPair>, Vec<ZoneCardPair>) -> T + Send + Sync + 'static>,
 }
 
 #[derive(Event, Clone, Debug)]
@@ -96,11 +116,14 @@ fn show_dialog(
     // 查询手卡
     mut query_card_line: Query<&mut CardLine>,
     // 查询卡片信息
-    mut query_card: Query<&mut CardInfo>,
+    mut query_card: Query<(&CardInfo, &CardState)>,
     asset_server: Res<AssetServer>,
 ) {
     for dialog_box in show_dialog.read() {
+        let box_card_entity = dialog_box.card.clone();
+        // 复制回调
         let cb = (dialog_box.callback).clone();
+        // 生成文案
         let text = format!(
             "{} With Cost: {} ",
             dialog_box.text.clone(),
@@ -110,15 +133,64 @@ fn show_dialog(
                 format!("min {} max {}", dialog_box.min, dialog_box.max)
             }
         );
+
+        let mut hand_list = vec![];
+        let mut card_list = vec![];
+        // 计算Zone和卡片
+        for hand_entity in dialog_box.hand_list.iter() {
+            if let Ok(card_line) = query_card_line.get(*hand_entity) {
+                let mut info_list = vec![];
+                for card_entity in card_line.card_list.iter() {
+                    if let Ok((card_info, card_state)) = query_card.get(*card_entity) {
+                        let ui_card_info = UICardInfo {
+                            card_type: UICardType::Hand,
+                            card_info: card_info.clone(),
+                            card_state: card_state.clone(),
+                            zone_card_pair: (hand_entity.clone(), card_entity.clone()),
+                        };
+                        if *card_entity != box_card_entity {
+                            info_list.push(ui_card_info);
+                        }
+                    }
+                }
+                if info_list.len() > 0 {
+                    hand_list.push(("Hand Card", info_list));
+                }
+            }
+        }
+
+        for zone_entity in dialog_box.zone_list.iter() {
+            if let Ok((zone_info, name, desk_zone)) = query_zone.get(*zone_entity) {
+                let mut info_list = vec![];
+                for card_entity in desk_zone.card_list.iter() {
+                    if let Ok((card_info, card_state)) = query_card.get(*card_entity) {
+                        let ui_card_info = UICardInfo {
+                            card_type: UICardType::Zone,
+                            card_info: card_info.clone(),
+                            card_state: card_state.clone(),
+                            zone_card_pair: (zone_entity.clone(), card_entity.clone()),
+                        };
+                        info_list.push(ui_card_info);
+                    }
+                }
+                if info_list.len() > 0 {
+                    card_list.push((name.to_string(), info_list));
+                }
+            }
+        }
+
         ui_dialog(
             &mut commands,
             text,
             |content_parent| {
-                // TODO 显示全部
+                // 显示全部
                 scroll_list(content_parent, |p| {
-                    spawn_card_list(p, "Zone1".to_string(), &asset_server);
-                    spawn_card_list(p, "Zone2".to_string(), &asset_server);
-                    spawn_card_list(p, "Zone3".to_string(), &asset_server);
+                    for (name, list) in hand_list.iter() {
+                        spawn_card_list(p, name.to_string(), &asset_server, list.clone());
+                    }
+                    for (name, list) in card_list.iter() {
+                        spawn_card_list(p, name.clone(), &asset_server, list.clone());
+                    }
                 });
             },
             move |click: Trigger<Pointer<Click>>,
@@ -300,6 +372,7 @@ fn spawn_card_list(
     mut parent: &mut RelatedSpawnerCommands<ChildOf>,
     title: String,
     asset_server: &Res<AssetServer>,
+    list: Vec<UICardInfo>,
 ) {
     parent
         .spawn((
@@ -375,10 +448,16 @@ fn spawn_card_list(
                 ))
                 .with_children(|pic_contents| {
                     // FIXME: 测试代码 后面改成其他的 这里除了图片还 要知道属于的zone或者cardline!
-                    for x in vec!["NAAI-A-001", "S001-A-001"] {
-                        let image = asset_server.load(format!("cards/{}.png", x));
+                    for ui_card_info in list.iter() {
+                        let image = if ui_card_info.card_state.face_up {
+                            asset_server.load(format!("cards/{}.png", ui_card_info.card_info.id))
+                        } else {
+                            asset_server.load(format!("cards/{}.png", "back"))
+                        };
+
                         pic_contents
                             .spawn((
+                                ui_card_info.clone(),
                                 Node {
                                     height: Val::Percent(100.0),
                                     width: Val::Auto,
@@ -389,6 +468,7 @@ fn spawn_card_list(
                                     image: image.clone(),
                                     ..default()
                                 },
+                                // 预览
                                 Pickable {
                                     should_block_lower: false,
                                     ..default()

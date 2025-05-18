@@ -1,8 +1,11 @@
 use crate::card_info::CardInfo;
 use crate::card_info::card_enums::CardType;
 use crate::debug_lab::CNA_SET_ON_COLOR;
+use crate::hand_card::CardLineResource;
 use crate::ui::{EnterEvent, ShowDialogBox};
+use crate::zone_info::AllZoneInfoResource;
 use bevy::prelude::*;
+use bevy::render::render_resource::encase::private::RuntimeSizedArray;
 use bevy_card3d_kit::highlight::Highlight;
 use bevy_card3d_kit::zone::desk_zone::DeskZone;
 use bevy_card3d_kit::zone::events::CardOnZone;
@@ -69,17 +72,32 @@ fn card_on_zone(
     query_zone: Query<(&CanSetOn, &DeskZone)>,
     query_card: Query<&CardInfo, With<CanSet>>,
     mut show_dialog: EventWriter<ShowDialogBox<EnterEvent>>,
+    all_zone_info_resource: Res<AllZoneInfoResource>,
+    card_line_resource: Res<CardLineResource>,
 ) {
     // TODO 这里要进行复杂的登场计算
     // 1.当前位置可以登场
     // 需要查看要登场时支付费用的内容
     // 发送要登场的事件
-    show_dialog.write(ShowDialogBox {
-        text: "Set Card".to_string(),
-        zone_list: vec![],
-        hand_list: vec![],
-        min: 1,
-        max: 2,
-        callback: Arc::new(|_, _| EnterEvent::Test),
-    });
+
+    if let Ok(card_info) = query_card.get(card_on_zone.card) {
+        if let Ok((can_set_on, desk_zone)) = query_zone.get(card_on_zone.zone) {
+            //TODO 检查当前费用是否足够!
+            if can_set_on.0.contains(&card_info.card_type) {
+                if card_info.card_type == CardType::Actor && desk_zone.card_list.len() > 0 {
+                    return;
+                }
+                // 这里 还要处理模因卡的问题
+                show_dialog.write(ShowDialogBox {
+                    card: card_on_zone.card.clone(),
+                    text: format!("Set Card {} ", card_info.name),
+                    zone_list: vec![all_zone_info_resource.my.jq],
+                    hand_list: vec![card_line_resource.my_card_line],
+                    min: card_info.cost,
+                    max: card_info.cost,
+                    callback: Arc::new(|_, _| EnterEvent::Test),
+                });
+            }
+        }
+    }
 }

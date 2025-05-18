@@ -111,6 +111,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::PreparationField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     // 对方三个战场
@@ -125,6 +126,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     let opponent_battle2 = commands
@@ -138,6 +140,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     let opponent_battle3 = commands
@@ -151,6 +154,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     //上方安全屋 x4
@@ -165,6 +169,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     let opponent_safe2 = commands
@@ -178,6 +183,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     let opponent_safe3 = commands
@@ -191,6 +197,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     let opponent_safe4 = commands
@@ -204,6 +211,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     // 上方理性区
@@ -286,6 +294,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::GraveField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     // ==============自己===================
@@ -301,6 +310,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::PreparationField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Actor]),
         ))
         .id();
@@ -316,6 +326,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Actor]),
         ))
         .id();
@@ -330,6 +341,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Actor]),
         ))
         .id();
@@ -344,6 +356,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::BattleField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Actor]),
         ))
         .id();
@@ -359,6 +372,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Meme]),
         ))
         .id();
@@ -373,6 +387,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Meme]),
         ))
         .id();
@@ -387,6 +402,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Meme]),
         ))
         .id();
@@ -401,6 +417,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::SafeField,
                 opponent: false,
             },
+            DeskZone::default(),
             CanSetOn(vec![CardType::Meme]),
         ))
         .id();
@@ -482,6 +499,7 @@ fn render_all_zone(commands: &mut Commands, a: f32, mid: f32) {
                 zone_type: ZoneType::GraveField,
                 opponent: true,
             },
+            DeskZone::default(),
         ))
         .id();
     commands.insert_resource(AllZoneInfoResource {

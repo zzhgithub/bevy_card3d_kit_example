@@ -9,20 +9,31 @@ mod zone_info;
 
 use crate::game::GamePlugin;
 use crate::hand_card::CardLineResource;
+use bevy::asset::load_internal_binary_asset;
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiPlugin;
+use bevy_inspector_egui::egui::TextStyle;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, Card3DPlugins, GamePlugin))
+    let mut app = App::new();
+    app.add_plugins((DefaultPlugins, Card3DPlugins, GamePlugin))
         .add_plugins(EguiPlugin {
             enable_multipass_for_primary_context: true,
         })
         .add_plugins(WorldInspectorPlugin::new())
-        .add_systems(Startup, setup)
-        .run();
+        .add_systems(Startup, setup);
+
+    // 加载默认字体
+    load_internal_binary_asset!(
+        app,
+        Handle::default(),
+        "../assets/fonts/wqy-microhei.ttc",
+        |bytes: &[u8], _path: String| { Font::try_from_bytes(bytes.to_vec()).unwrap() }
+    );
+
+    app.run();
 }
 
 fn setup(mut commands: Commands) {

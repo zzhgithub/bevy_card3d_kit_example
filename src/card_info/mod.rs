@@ -5,7 +5,7 @@ use crate::card_info::card_enums::{Attr, CardType, Race};
 use bevy::prelude::*;
 use bevy_card3d_kit::prelude::*;
 
-#[derive(Component, Clone, Reflect)]
+#[derive(Component, Clone, Reflect, Debug)]
 #[reflect(Component)]
 pub struct CardInfo {
     pub id: String,
