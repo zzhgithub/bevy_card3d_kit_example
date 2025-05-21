@@ -12,17 +12,19 @@ use bevy_card3d_kit::prelude::{Card, CardLine};
 use bevy_card3d_kit::preview_plugins::ImagePreview;
 use bevy_card3d_kit::zone::Zone;
 use bevy_card3d_kit::zone::desk_zone::DeskZone;
+use std::cmp::PartialEq;
 use std::sync::Arc;
 
 // 被UI中选中
 #[derive(Component, Clone, Debug)]
-pub struct UIChose;
+pub struct UIChose(pub u32);
 
 // 确认按钮组件
 #[derive(Component, Clone, Debug)]
 pub struct ConfirmButton {
     pub min: usize,
     pub max: usize,
+    pub list: Vec<ZoneAndLimit>,
 }
 
 #[derive(Component, Clone, Debug)]
@@ -35,7 +37,18 @@ fn confirm_button_color_system(
 ) {
     if let Ok((button, confirm_button)) = button_query.single() {
         let num = ui_chose_query.iter().len();
-        if num >= confirm_button.min && num <= confirm_button.max {
+        let mut check_a = true;
+        for zone_and_limit in confirm_button.list.iter() {
+            let index = zone_and_limit.entity.index();
+            let i = ui_chose_query.iter().filter(|&x| x.0 == index).count();
+            if i >= zone_and_limit.min && i <= zone_and_limit.max {
+                // do nothing
+            } else {
+                check_a = false;
+                break;
+            }
+        }
+        if num >= confirm_button.min && num <= confirm_button.max && check_a {
             commands
                 .entity(button)
                 .insert(ButtonEnable)
@@ -49,7 +62,7 @@ fn confirm_button_color_system(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum UICardType {
     Hand,
     Zone,
@@ -66,25 +79,38 @@ pub struct UICardInfo {
 // 位置卡片对
 pub type ZoneCardPair = (Entity, Entity);
 
+#[derive(Clone, Debug)]
+pub struct ZoneAndLimit {
+    pub entity: Entity,
+    pub min: usize,
+    pub max: usize,
+}
+
 #[derive(Event, Clone)]
 pub struct ShowDialogBox<T> {
     pub card: Entity,
     // 标题
     pub text: String,
     // 不同区域 Vec<DeskZone,Name>
-    pub zone_list: Vec<Entity>,
+    pub zone_list: Vec<ZoneAndLimit>,
     // 手卡区域 Optional
-    pub hand_list: Vec<Entity>,
+    pub hand_list: Vec<ZoneAndLimit>,
     // 选择的张数
     pub min: usize,
     pub max: usize,
     // 生成事件的回调
-    pub callback: Arc<dyn Fn(Vec<ZoneCardPair>, Vec<ZoneCardPair>) -> T + Send + Sync + 'static>,
+    pub callback:
+        Arc<dyn Fn(Entity, Vec<ZoneCardPair>, Vec<ZoneCardPair>) -> T + Send + Sync + 'static>,
 }
 
 #[derive(Event, Clone, Debug)]
 pub enum EnterEvent {
     Test,
+    SetCard {
+        card: Entity,
+        cost_hand: Vec<ZoneCardPair>,
+        cost_jq: Vec<ZoneCardPair>,
+    },
 }
 
 #[derive(Component, Clone, Debug)]
@@ -123,22 +149,19 @@ fn show_dialog(
         let box_card_entity = dialog_box.card.clone();
         // 复制回调
         let cb = (dialog_box.callback).clone();
-        // 生成文案
-        let text = format!(
-            "{} With Cost: {} ",
-            dialog_box.text.clone(),
-            if dialog_box.min == dialog_box.max {
-                dialog_box.min.to_string()
-            } else {
-                format!("min {} max {}", dialog_box.min, dialog_box.max)
-            }
-        );
+
+        let all_list = dialog_box
+            .hand_list
+            .iter()
+            .chain(dialog_box.zone_list.iter())
+            .cloned()
+            .collect();
 
         let mut hand_list = vec![];
         let mut card_list = vec![];
         // 计算Zone和卡片
-        for hand_entity in dialog_box.hand_list.iter() {
-            if let Ok(card_line) = query_card_line.get(*hand_entity) {
+        for zone_and_limit in dialog_box.hand_list.iter() {
+            if let Ok(card_line) = query_card_line.get(zone_and_limit.entity.clone()) {
                 let mut info_list = vec![];
                 for card_entity in card_line.card_list.iter() {
                     if let Ok((card_info, card_state)) = query_card.get(*card_entity) {
@@ -146,7 +169,7 @@ fn show_dialog(
                             card_type: UICardType::Hand,
                             card_info: card_info.clone(),
                             card_state: card_state.clone(),
-                            zone_card_pair: (hand_entity.clone(), card_entity.clone()),
+                            zone_card_pair: (zone_and_limit.clone().entity, card_entity.clone()),
                         };
                         if *card_entity != box_card_entity {
                             info_list.push(ui_card_info);
@@ -154,13 +177,14 @@ fn show_dialog(
                     }
                 }
                 if info_list.len() > 0 {
-                    hand_list.push(("Hand Card", info_list));
+                    hand_list.push(("Hand Card", zone_and_limit, info_list));
                 }
             }
         }
 
-        for zone_entity in dialog_box.zone_list.iter() {
-            if let Ok((zone_info, name, desk_zone)) = query_zone.get(*zone_entity) {
+        for zone_and_limit in dialog_box.zone_list.iter() {
+            if let Ok((zone_info, name, desk_zone)) = query_zone.get(zone_and_limit.entity.clone())
+            {
                 let mut info_list = vec![];
                 for card_entity in desk_zone.card_list.iter() {
                     if let Ok((card_info, card_state)) = query_card.get(*card_entity) {
@@ -168,28 +192,40 @@ fn show_dialog(
                             card_type: UICardType::Zone,
                             card_info: card_info.clone(),
                             card_state: card_state.clone(),
-                            zone_card_pair: (zone_entity.clone(), card_entity.clone()),
+                            zone_card_pair: (zone_and_limit.clone().entity, card_entity.clone()),
                         };
                         info_list.push(ui_card_info);
                     }
                 }
                 if info_list.len() > 0 {
-                    card_list.push((name.to_string(), info_list));
+                    card_list.push((name.to_string(), zone_and_limit, info_list));
                 }
             }
         }
 
         ui_dialog(
             &mut commands,
-            text,
+            dialog_box.text.clone(),
             |content_parent| {
                 // 显示全部
                 scroll_list(content_parent, |p| {
-                    for (name, list) in hand_list.iter() {
-                        spawn_card_list(p, name.to_string(), &asset_server, list.clone());
+                    for (name, zone_and_limit, list) in hand_list.clone() {
+                        spawn_card_list(
+                            p,
+                            name.to_string(),
+                            &asset_server,
+                            list.clone(),
+                            zone_and_limit.clone(),
+                        );
                     }
-                    for (name, list) in card_list.iter() {
-                        spawn_card_list(p, name.clone(), &asset_server, list.clone());
+                    for (name, zone_and_limit, list) in card_list.clone() {
+                        spawn_card_list(
+                            p,
+                            name.clone(),
+                            &asset_server,
+                            list.clone(),
+                            zone_and_limit.clone(),
+                        );
                     }
                 });
             },
@@ -197,10 +233,21 @@ fn show_dialog(
                   mut enter_events: EventWriter<EnterEvent>,
                   mut commands: Commands,
                   query_enable: Query<&ButtonEnable>,
-                  dialog_show: Query<Entity, With<DialogShow>>| {
+                  dialog_show: Query<Entity, With<DialogShow>>,
+                  query_chose: Query<(&UIChose, &UICardInfo)>| {
                 // FIXME 添加控制 确认显示的逻辑
                 if let Ok(_) = query_enable.get(click.target()) {
-                    let event = (cb)(vec![], vec![]);
+                    let hand = query_chose
+                        .iter()
+                        .filter(|&(_, info)| info.card_type == UICardType::Hand)
+                        .map(|(_, info)| info.zone_card_pair)
+                        .collect();
+                    let zone = query_chose
+                        .iter()
+                        .filter(|&(_, info)| info.card_type == UICardType::Zone)
+                        .map(|(_, info)| info.zone_card_pair)
+                        .collect();
+                    let event = (cb)(box_card_entity, hand, zone);
                     info!("Sending {:?}", event);
                     // enter_events.write(event);
                     if let Ok(single) = dialog_show.single() {
@@ -215,8 +262,11 @@ fn show_dialog(
                     commands.entity(single).despawn();
                 }
             },
-            dialog_box.min,
-            dialog_box.max,
+            ConfirmButton {
+                min: dialog_box.min,
+                max: dialog_box.max,
+                list: all_list,
+            },
         );
     }
 }
@@ -231,8 +281,7 @@ fn ui_dialog<E1: Event, B1: Bundle, M1, E2: Event, B2: Bundle, M2>(
     observer_confirm: impl IntoObserverSystem<E1, B1, M1>,
     // 取消
     observer_cancel: impl IntoObserverSystem<E2, B2, M2>,
-    min: usize,
-    max: usize,
+    confirm_button: ConfirmButton,
 ) {
     commands
         .spawn((
@@ -317,7 +366,7 @@ fn ui_dialog<E1: Event, B1: Bundle, M1, E2: Event, B2: Bundle, M2>(
                             dialog_button
                                 .commands()
                                 .entity(entity)
-                                .insert(ConfirmButton { min, max });
+                                .insert(confirm_button);
                             spawn_button(
                                 dialog_button,
                                 "Cancel".to_string(),
@@ -328,8 +377,6 @@ fn ui_dialog<E1: Event, B1: Bundle, M1, E2: Event, B2: Bundle, M2>(
                 });
         });
 }
-
-// fn spawn_content(mut parent: &mut RelatedSpawnerCommands<ChildOf>) {}
 
 // 渲染按钮
 fn spawn_button<E: Event, B: Bundle, M>(
@@ -373,7 +420,9 @@ fn spawn_card_list(
     title: String,
     asset_server: &Res<AssetServer>,
     list: Vec<UICardInfo>,
+    zone_and_limit: ZoneAndLimit,
 ) {
+    let entity_index = zone_and_limit.clone().entity.index();
     parent
         .spawn((
             Node {
@@ -475,10 +524,9 @@ fn spawn_card_list(
                                 },
                             ))
                             .observe(
-                                // TODO 这里要改成其他的！
-                                |click: Trigger<Pointer<Click>>,
-                                 mut commands: Commands,
-                                 query: Query<&Outline>| {
+                                move |click: Trigger<Pointer<Click>>,
+                                      mut commands: Commands,
+                                      query: Query<&Outline>| {
                                     if let Ok(en) = query.get(click.target()) {
                                         commands
                                             .entity(click.target())
@@ -492,7 +540,7 @@ fn spawn_card_list(
                                                 offset: Val::Px(0.2),
                                                 color: color::palettes::css::RED.into(),
                                             })
-                                            .insert(UIChose);
+                                            .insert(UIChose(entity_index));
                                     }
                                 },
                             );
